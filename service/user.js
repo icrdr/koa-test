@@ -1,35 +1,32 @@
 import User from '../model/User.js'
 
-const create_user = async (name, password) => {
+const create_user = async (user_id, password) => {
     const new_user = await User.create({
-        user_id: name,
-        name: name,
+        user_id: user_id,
+        name: user_id,
         password: password
     });
-    return JSON.stringify(new_user)
+
+    return new_user
 }
 
 const list_users = async () => {
     const users = await User.findAll();
-    return JSON.stringify(users)
+    return users
 }
 
-const check_user = async (name, password) => {
-    const user = await User.findAll({
+const auth_user = async (user_id, password) => {
+    const user = await User.findOne({
         where: {
-            user_id: name
+            user_id: user_id,
+            password: password,
         }
-    });
-
-    if (user[0].password === password) {
-        return JSON.stringify(user[0])
-    } else {
-        return false
-    }
+    })
+    return user
 }
 
 export default {
     create_user,
     list_users,
-    check_user
+    auth_user
 }

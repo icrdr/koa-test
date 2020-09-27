@@ -4,22 +4,21 @@ import * as all_ctls from "./controller/index.js"
 // register all controller
 const router = new Router()
 for (const [namespace, ctl_space] of Object.entries(all_ctls)) {
+    const _router = new Router()
     for (const [url, ctl] of Object.entries(ctl_space)) {
         const [method, path] = url.split(" ", 2)
-        const full_path = "/" + namespace + path
         switch (method) {
             case "GET":
-                router.get(full_path, ctl);
+                _router.get(path, ctl);
                 break;
             case "POST":
-                router.post(full_path, ctl);
+                _router.post(path, ctl);
                 break;
             default:
-                console.log(`invalid router: ${method} ${full_path}`);
-                continue;
+                break;
         }
-        console.log(`register router: ${method} ${full_path}`);
+        console.log(`register router: ${method} /${namespace}${path}`);
     }
+    router.use('/' + namespace, _router.routes(), _router.allowedMethods());
 }
-
 export default router;
