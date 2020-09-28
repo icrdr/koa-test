@@ -1,7 +1,11 @@
 import Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
 import router from './router.js'
+import dotenv from 'dotenv'
+// import koajwt from 'koa-jwt'
+import permissionCheck from './middleware/permission.js'
 
+dotenv.config()
 const app = new Koa()
 
 // log request URL:
@@ -20,9 +24,13 @@ app.use(async (ctx, next) => {
             msg: err.message
         };
         // throw err on terminal
-        // ctx.app.emit('error', err, ctx);
+        ctx.app.emit('error', err, ctx);
     }
 });
+
+// app.use(koajwt({ secret: process.env.JWT_SECRET }).unless({ path: ['/users/login', '/users/signup'] }));
+
+app.use(permissionCheck);
 
 // add router middleware:
 app.use(bodyParser());

@@ -1,5 +1,5 @@
 import sequelize from './model/db.js'
-import User from './model/User.js'
+import * as user from './model/user.js'
 
 
 await sequelize.sync({ alter: true });

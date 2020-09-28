@@ -1,24 +1,32 @@
 
-import user from '../service/user.js'
+import {
+    getUsers,
+    authUser,
+    createUser
+} from '../service/user.js'
 import jwt from 'jsonwebtoken'
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 export default {
     'GET /': async (ctx, next) => {
-        const result = await user.list_users()
+        const users = await getUsers()
         ctx.type = 'json'
-        ctx.body = JSON.stringify(result)
+        ctx.body = JSON.stringify(users)
     },
-    'POST /signin': async (ctx, next) => {
-        const user_id = ctx.request.body.user_id;
-        const password = ctx.request.body.password;;
+    'POST /login': async (ctx, next) => {
+        const username = ctx.request.body.username;
+        const password = ctx.request.body.password;
 
-        console.log(`signin with id: ${user_id}, password: ${password}`);
-        const result = await user.auth_user(user_id, password)
-        if (result !== null) {
+        console.log(`signin with id: ${username}, password: ${password}`);
+        const user = await authUser(username, password)
+        console.log(user.username)
+        if (user) {
             const token = jwt.sign({
-                user_id: result.user_id,
-                id: result.id
-            }, 'my_token', { expiresIn: '2h' });
+                username: user.username,
+                id: user.id
+            }, process.env.JWT_SECRET, { expiresIn: '2h' });
             ctx.type = 'json'
             ctx.body = {
                 token: token
@@ -28,13 +36,12 @@ export default {
         }
     },
     'POST /signup': async (ctx, next) => {
-        const user_id = ctx.request.body.user_id;
+        const username = ctx.request.body.username;
         const password = ctx.request.body.password;
 
-        console.log(`signup with id: ${user_id}, password: ${password}`);
-        const result = await user.create_user(user_id, password)
-
+        console.log(`signup with id: ${username}, password: ${password}`);
+        const user = await createUser(username, password)
         ctx.type = 'json'
-        ctx.body = JSON.stringify(result)
+        ctx.body = JSON.stringify(user)
     }
 }
