@@ -1,12 +1,15 @@
 import Router from 'koa-router';
-import * as all_ctls from "./controller/index.js"
+import all_ctls from "./controller/index.js"
 
 // register all controller
 const router = new Router()
-for (const [namespace, ctl_space] of Object.entries(all_ctls)) {
+for (let [namespace, ctl_space] of Object.entries(all_ctls)) {
     const _router = new Router()
     for (const [url, ctl] of Object.entries(ctl_space)) {
         const [method, path] = url.split(" ", 2)
+        console.log(namespace)
+        console.log(method)
+        console.log(path)
         switch (method) {
             case "GET":
                 _router.get(path, ctl);
@@ -17,8 +20,8 @@ for (const [namespace, ctl_space] of Object.entries(all_ctls)) {
             default:
                 break;
         }
-        console.log(`register router: ${method} /${namespace}${path}`);
+        console.log(`register router: ${method} /api${namespace}${path}`);
     }
-    router.use('/' + namespace, _router.routes(), _router.allowedMethods());
+    router.use('/api' + namespace, _router.routes(), _router.allowedMethods());
 }
 export default router;

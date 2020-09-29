@@ -17,8 +17,7 @@ const User = sequelize.define('user', {
         type: Sequelize.STRING(),
         allowNull: false,
         set(value) {
-            // Storing passwords in plaintext in the database is terrible.
-            // Hashing the value with an appropriate cryptographic hash function is better.
+            // Hashing the password with an appropriate cryptographic hash function.
             this.setDataValue('password', hash(this.username + value));
         }
     },
@@ -43,7 +42,7 @@ const User = sequelize.define('user', {
     }
 }, {
     freezeTableName: true,
-    underscored: true // for snake_case
+    underscored: true
 });
 
 const ThirdAuth = sequelize.define('third_auth', {
@@ -65,7 +64,7 @@ const ThirdAuth = sequelize.define('third_auth', {
     }
 }, {
     freezeTableName: true,
-    underscored: true // for snake_case
+    underscored: true
 });
 
 const Role = sequelize.define('role', {
@@ -83,7 +82,7 @@ const Role = sequelize.define('role', {
     },
 }, {
     freezeTableName: true,
-    underscored: true // for snake_case
+    underscored: true
 });
 
 const Permission = sequelize.define('permission', {
@@ -92,11 +91,6 @@ const Permission = sequelize.define('permission', {
         primaryKey: true,
         autoIncrement: true
     },
-    code: {
-        type: Sequelize.STRING(),
-        allowNull: false,
-        unique: true
-    },
     name: {
         type: Sequelize.STRING(),
         allowNull: false
@@ -104,13 +98,25 @@ const Permission = sequelize.define('permission', {
     description: {
         type: Sequelize.STRING(),
     },
+    url: {
+        type: Sequelize.STRING(),
+        allowNull: false,
+        unique: true
+    },
+    method: {
+        type: Sequelize.STRING(),
+        allowNull: false,
+    }
 }, {
     freezeTableName: true,
-    underscored: true // for snake_case
+    underscored: true
 });
 
 User.belongsToMany(Role, { through: 'user_role' });
 Role.belongsToMany(User, { through: 'user_role' });
+
+Role.belongsToMany(Permission, { through: 'role_permission' });
+Permission.belongsToMany(Role, { through: 'role_permission' });
 
 User.hasMany(ThirdAuth);
 ThirdAuth.belongsTo(User);

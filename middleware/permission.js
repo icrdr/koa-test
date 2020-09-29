@@ -1,4 +1,3 @@
-import jwt from 'jsonwebtoken'
 import { getUserFromCtx } from '../service/user.js'
 
 const permissionCheck = async (ctx, next) => {

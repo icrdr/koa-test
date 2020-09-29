@@ -30,7 +30,7 @@ app.use(async (ctx, next) => {
 
 // app.use(koajwt({ secret: process.env.JWT_SECRET }).unless({ path: ['/users/login', '/users/signup'] }));
 
-app.use(permissionCheck);
+// app.use(permissionCheck);
 
 // add router middleware:
 app.use(bodyParser());
