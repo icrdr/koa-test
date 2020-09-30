@@ -9,12 +9,12 @@ const User = sequelize.define('user', {
         autoIncrement: true
     },
     username: {
-        type: Sequelize.STRING(),
+        type: Sequelize.STRING,
         unique: true,
         allowNull: false
     },
     password: {
-        type: Sequelize.STRING(),
+        type: Sequelize.STRING,
         allowNull: false,
         set(value) {
             // Hashing the password with an appropriate cryptographic hash function.
@@ -22,22 +22,22 @@ const User = sequelize.define('user', {
         }
     },
     fullName: {
-        type: Sequelize.STRING(),
+        type: Sequelize.STRING,
         allowNull: false,
     },
     email: {
-        type: Sequelize.STRING(),
+        type: Sequelize.STRING,
         unique: true,
     },
     mobile: {
-        type: Sequelize.STRING(),
+        type: Sequelize.STRING,
         unique: true
     },
     gender: {
-        type: Sequelize.BOOLEAN
+        type: Sequelize.ENUM('male', 'female')
     },
     idNumber: {
-        type: Sequelize.STRING(),
+        type: Sequelize.STRING,
         unique: true
     }
 }, {
@@ -52,15 +52,15 @@ const ThirdAuth = sequelize.define('third_auth', {
         autoIncrement: true
     },
     type: {
-        type: Sequelize.STRING(),
+        type: Sequelize.STRING,
         allowNull: false
     },
     uid: {
-        type: Sequelize.STRING(),
+        type: Sequelize.STRING,
         allowNull: false
     },
     accessToken: {
-        type: Sequelize.STRING(),
+        type: Sequelize.STRING,
     }
 }, {
     freezeTableName: true,
@@ -74,38 +74,26 @@ const Role = sequelize.define('role', {
         autoIncrement: true
     },
     name: {
-        type: Sequelize.STRING(),
+        type: Sequelize.STRING,
         allowNull: false
     },
     description: {
-        type: Sequelize.STRING(),
+        type: Sequelize.STRING,
     },
 }, {
     freezeTableName: true,
     underscored: true
 });
 
-const Permission = sequelize.define('permission', {
+const Permission = sequelize.define('api', {
     id: {
         type: Sequelize.INTEGER,
         primaryKey: true,
         autoIncrement: true
     },
-    name: {
-        type: Sequelize.STRING(),
+    code: {
+        type: Sequelize.STRING,
         allowNull: false
-    },
-    description: {
-        type: Sequelize.STRING(),
-    },
-    url: {
-        type: Sequelize.STRING(),
-        allowNull: false,
-        unique: true
-    },
-    method: {
-        type: Sequelize.STRING(),
-        allowNull: false,
     }
 }, {
     freezeTableName: true,
@@ -115,8 +103,8 @@ const Permission = sequelize.define('permission', {
 User.belongsToMany(Role, { through: 'user_role' });
 Role.belongsToMany(User, { through: 'user_role' });
 
-Role.belongsToMany(Permission, { through: 'role_permission' });
-Permission.belongsToMany(Role, { through: 'role_permission' });
+Role.belongsToMany(Permission, { through: 'role_Permission' });
+Permission.belongsToMany(Role, { through: 'role_Permission' });
 
 User.hasMany(ThirdAuth);
 ThirdAuth.belongsTo(User);

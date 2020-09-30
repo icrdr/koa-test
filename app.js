@@ -33,6 +33,7 @@ app.use(async (ctx, next) => {
 // app.use(permissionCheck);
 
 // add router middleware:
+
 app.use(bodyParser());
 app.use(router.routes());
 app.use(router.allowedMethods());

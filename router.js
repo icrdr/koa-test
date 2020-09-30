@@ -1,27 +1,62 @@
 import Router from 'koa-router';
-import all_ctls from "./controller/index.js"
+import controllers from "./controller/index.js"
 
-// register all controller
-const router = new Router()
-for (let [namespace, ctl_space] of Object.entries(all_ctls)) {
-    const _router = new Router()
-    for (const [url, ctl] of Object.entries(ctl_space)) {
-        const [method, path] = url.split(" ", 2)
-        console.log(namespace)
-        console.log(method)
-        console.log(path)
-        switch (method) {
-            case "GET":
-                _router.get(path, ctl);
-                break;
-            case "POST":
-                _router.post(path, ctl);
+import jwt from 'jsonwebtoken'
+
+const checkPermission = (validCode) => {
+    return async (ctx, next) => {
+        const token = ctx.header.authorization.split(' ')[1]
+        const payload = jwt.verify(token, process.env.JWT_SECRET)
+        let isPass = false
+        let scope = undefined
+        for (const code of payload.permissions) {
+            if (validCode.includes(code)) {
+                isPass = true
+                scope = code.split("/")[1]
+
+            }
+        }
+        if (!isPass) {
+            ctx.throw(401, 'Unauthorized')
+        }
+
+        await next();
+        
+        console.log(scope)
+        switch (scope) {
+            case 'isOwner':
+                isPass = ctx.body.id === payload.id
                 break;
             default:
                 break;
         }
-        console.log(`register router: ${method} /api${namespace}${path}`);
+        console.log(isPass)
+        if (!isPass) {
+            ctx.throw(401, 'Unauthorized')
+        }
+
     }
-    router.use('/api' + namespace, _router.routes(), _router.allowedMethods());
+};
+
+// register all controller
+const router = new Router()
+for (const [setName, controllerSet] of Object.entries(controllers)) {
+    const subRouter = new Router()
+    for (const [meta, ctl] of Object.entries(controllerSet)) {
+        const [method, path, code] = meta.split(" ", 3)
+        const cp = checkPermission(code)
+        switch (method) {
+            case "GET":
+                subRouter.get(path, cp, ctl);
+                break;
+            case "POST":
+                subRouter.post(path, cp, ctl);
+                break;
+            default:
+                break;
+        }
+        console.log(`register router: ${method} /api${setName}${path}`);
+    }
+    router.use('/api' + setName, subRouter.routes(), subRouter.allowedMethods());
 }
 export default router;

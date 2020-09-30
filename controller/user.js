@@ -1,20 +1,23 @@
 import {
     getUsers,
-    authUser,
+    getUserById,
     createUser
 } from '../service/user.js'
-import jwt from 'jsonwebtoken'
-import dotenv from 'dotenv'
-
-dotenv.config()
 
 export default {
-    'GET /': async (ctx) => {
-        const query = ctx.query
-        const path = ctx.path
-        console.log(path)
+    'GET / user.browse': async (ctx) => {
         const users = await getUsers()
-        ctx.type = 'json'
-        ctx.body = JSON.stringify(users)
+        ctx.body = users
+    },
+    'GET /:id user.browse/id': async (ctx) => {
+        const id = ctx.params.id
+        const user = await getUserById(id)
+        ctx.body = user
+    },
+    'POST / create': async (ctx) => {
+        const username = ctx.request.body.username;
+        const password = ctx.request.body.password;
+        const user = await createUser(username, password)
+        ctx.body = user
     }
 }
