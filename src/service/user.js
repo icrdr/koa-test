@@ -1,5 +1,5 @@
 import { User, ThirdAuth } from '../model/user.js'
-import { hash } from '../utils.js'
+import { hash } from '../../utils.js'
 import jwt from 'jsonwebtoken'
 
 const getUserById = async (id) => {
