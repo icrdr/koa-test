@@ -1,12 +1,21 @@
-import { get } from "http";
-import { Context } from "koa";
+import { Context, Next } from "koa";
+import { controller, get } from "../decorater/router";
 
-export default class UserController {
+@controller("/users")
+export class UserController {
+  @get("")
   static async getUsers(ctx: Context) {
-    for (const iterator of ctx.request.body) {
-      
-    }
-    ctx.request.body
+    ctx.request.body;
+    ctx.status = 400;
+    ctx.body = "xxx";
+  }
+}
+
+@controller()
+export class UserController2 {
+  @get("/a")
+  static async getUsers(ctx: Context) {
+    ctx.request.body;
     ctx.status = 400;
     ctx.body = "xxx";
   }

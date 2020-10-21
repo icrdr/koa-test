@@ -11,7 +11,7 @@ import { config } from "./config";
 
 import Router from "koa-router";
 import { logger, requestLogger } from "./logger";
-import UserController from "./controller/user";
+import { loadRouter } from "./decorater/router";
 
 const router = new Router();
 const app = new Koa();
@@ -28,7 +28,7 @@ createConnection({
   namingStrategy: new SnakeNamingStrategy(),
   logging: false,
 })
-  .then((connection) => {
+  .then(async (connection) => {
     logger.info("Successfully connect to database.");
 
     // Enable bodyParser
@@ -37,15 +37,14 @@ createConnection({
     // Enable requestLogger and error catcher
     app.use(requestLogger);
 
-    router.get("/", UserController.getUsers);
+    // Enable all router
+    const router = await loadRouter("/api", __dirname + "/controller");
+    app.use(router.routes()).use(router.allowedMethods());
 
     // app.use(koajwt({ secret: process.env.JWT_SECRET }).unless({ path: ['/users/login', '/users/signup'] }));
     // app.use(permissionCheck);
     // add router middleware:
 
-    //Enable router
-    app.use(router.routes()).use(router.allowedMethods());
-    
     app.listen(config.port);
     logger.info(`App started at port http://localhost:${config.port}`);
   })
