@@ -2,13 +2,19 @@ import "reflect-metadata";
 import Koa from "koa";
 import bodyParser from "koa-bodyparser";
 import { createConnection } from "typeorm";
-import config from "./config";
-import { User } from "./entity/user";
+import { SnakeNamingStrategy } from "typeorm-naming-strategies";
+import { config } from "./config";
+
 // import router from './router.js'
 // import koajwt from 'koa-jwt'
 // import permissionCheck from './middleware/permission.js'
 
 import Router from "koa-router";
+import { logger, requestLogger } from "./logger";
+import UserController from "./controller/user";
+
+const router = new Router();
+const app = new Koa();
 
 createConnection({
   type: "mysql",
@@ -17,49 +23,30 @@ createConnection({
   username: config.dbUsername,
   password: config.dbPassword,
   database: config.dbDatabase,
-  entities: [__dirname + "/entity/*.ts"], //related dir
+  entities: [__dirname + "/entity/*.ts"], //related dir only
   synchronize: true, // sync table
+  namingStrategy: new SnakeNamingStrategy(),
   logging: false,
 })
   .then((connection) => {
-    console.log("database connection successful");
-    const router = new Router();
-    const app = new Koa();
+    logger.info("Successfully connect to database.");
 
-    // log request URL:
-    app.use(async (ctx, next) => {
-      console.log(`Process ${ctx.request.method} ${ctx.request.url}...`);
-      await next();
-    });
+    // Enable bodyParser
+    app.use(bodyParser());
 
-    // catch error (from offical doc)
-    app.use(async (ctx, next) => {
-      try {
-        await next();
-      } catch (err) {
-        ctx.status = err.statusCode || err.status || 500;
-        ctx.body = {
-          msg: err.message,
-        };
-        // throw err on terminal
-        ctx.app.emit("error", err, ctx);
-      }
-    });
+    // Enable requestLogger and error catcher
+    app.use(requestLogger);
 
-    router.get("/", async (ctx) => {
-      ctx.body = "ok";
-    });
+    router.get("/", UserController.getUsers);
+
     // app.use(koajwt({ secret: process.env.JWT_SECRET }).unless({ path: ['/users/login', '/users/signup'] }));
-
     // app.use(permissionCheck);
-
     // add router middleware:
 
-    app.use(bodyParser());
-    app.use(router.routes());
-    app.use(router.allowedMethods());
-
-    app.listen(3000);
-    console.log("app started at port 3000");
+    //Enable router
+    app.use(router.routes()).use(router.allowedMethods());
+    
+    app.listen(config.port);
+    logger.info(`App started at port http://localhost:${config.port}`);
   })
-  .catch((error) => console.log(error));
+  .catch((err) => logger.error(err));
