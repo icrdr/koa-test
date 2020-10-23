@@ -52,11 +52,12 @@ const logger = createLogger({
     new transports.DailyRotateFile({
       format: format.combine(loggerContent(false)),
       filename: "%DATE%.log",
-      dirname:'log',
+      dirname: "log",
       datePattern: "YYYY-MM-DD",
-      level:'http'
+      level: "http",
     }),
     new transports.Console({
+      silent: config.logSilent,
       format: format.combine(loggerContent(true)),
     }),
   ],

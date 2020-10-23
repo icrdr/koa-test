@@ -1,42 +1,92 @@
-// https://github.com/lichangwei/koa-router-decorators
-
 import glob from "glob";
 import Koa from "koa";
 import Router from "koa-router";
 import { logger } from "../logger";
 import path from "path";
 
-type HTTPMethod = "get" | "put" | "del" | "post" | "patch";
+type HTTPMethod =
+  | "get"
+  | "put"
+  | "del"
+  | "post"
+  | "patch"
+  | "head"
+  | "options"
+  | "all";
+
+interface methodRoute {
+  method: HTTPMethod;
+  path: string;
+  middlewares: Array<Koa.Middleware>;
+  controller: Koa.Middleware;
+}
+
+interface classRoute {
+  path: string;
+  middlewares: Array<Koa.Middleware>;
+  controllers: Array<methodRoute>;
+}
+
+const routeMap: Record<string, classRoute> = {};
 
 // route decorator
-let route = (
+export const Route = (
   method: HTTPMethod,
   path: string,
   ...middlewares: Array<Koa.Middleware>
 ) => {
-  return (target: any, property: string, descriptor: PropertyDescriptor) => {};
+  return (target: any, property: string, descriptor: PropertyDescriptor) => {
+    const className = target.name;
+    const methodRoute = {
+      method,
+      path,
+      middlewares,
+      controller: target[property],
+    };
+    if (!routeMap[className]) {
+      routeMap[className] = {
+        path: "",
+        middlewares: [],
+        controllers: [],
+      };
+    }
+    routeMap[className].controllers.push(methodRoute);
+  };
 };
 
-export const get = (path: string, ...middlewares: Array<Koa.Middleware>) =>
-  route("get", path, ...middlewares);
-export const post = (path: string, ...middlewares: Array<Koa.Middleware>) =>
-  route("post", path, ...middlewares);
-export const put = (path: string, ...middlewares: Array<Koa.Middleware>) =>
-  route("put", path, ...middlewares);
-export const del = (path: string, ...middlewares: Array<Koa.Middleware>) =>
-  route("del", path, ...middlewares);
-export const patch = (path: string, ...middlewares: Array<Koa.Middleware>) =>
-  route("patch", path, ...middlewares);
+export const Get = (path: string, ...middlewares: Array<Koa.Middleware>) =>
+  Route("get", path, ...middlewares);
+export const Post = (path: string, ...middlewares: Array<Koa.Middleware>) =>
+  Route("post", path, ...middlewares);
+export const Put = (path: string, ...middlewares: Array<Koa.Middleware>) =>
+  Route("put", path, ...middlewares);
+export const Del = (path: string, ...middlewares: Array<Koa.Middleware>) =>
+  Route("del", path, ...middlewares);
+export const Patch = (path: string, ...middlewares: Array<Koa.Middleware>) =>
+  Route("patch", path, ...middlewares);
+export const Options = (path: string, ...middlewares: Array<Koa.Middleware>) =>
+  Route("options", path, ...middlewares);
+export const Head = (path: string, ...middlewares: Array<Koa.Middleware>) =>
+  Route("head", path, ...middlewares);
+export const All = (path: string, ...middlewares: Array<Koa.Middleware>) =>
+  Route("all", path, ...middlewares);
 
 // controller class decorator
-export const controller = (
-  path: string = "",
+export const Controller = (
+  path: string,
   ...middlewares: Array<Koa.Middleware>
 ) => {
   return (target: any) => {
-    target.isControllerClass = true;
-    target.path = path;
-    target.middlewares = middlewares;
+    const className = target.name;
+    if (!routeMap[className]) {
+      routeMap[className] = {
+        path: "",
+        middlewares: [],
+        controllers: [],
+      };
+    }
+    routeMap[className].path = path;
+    routeMap[className].middlewares = middlewares;
   };
 };
 
@@ -47,45 +97,38 @@ export const loadRouter = async (
 ) => {
   const router = new Router();
 
-  // rebuild route decorator before loading all controller
-  route = (
-    method: HTTPMethod,
-    path: string,
-    ...middlewares: Array<Koa.Middleware>
-  ) => {
-    return (target: any, property: string, descriptor: PropertyDescriptor) => {
-      console.log(descriptor);
-      if (!target.isControllerClass) return;
+  // dynamic import all controller in the folder
+  const files = glob.sync(path.join(controllerFolder, `./**/*.controller.ts`));
 
+  await Promise.all(
+    files.map(async (file) => {
+      await import(file);
+    })
+  );
+
+  // register router
+  for (const className in routeMap) {
+    const classRoute = routeMap[className];
+    for (const methodRoute of classRoute.controllers) {
       let middlewareArray: Array<Koa.Middleware> = [];
 
       // add loader middleware
-      middlewareArray = routerMiddlewares
-        ? middlewareArray.concat(routerMiddlewares)
-        : middlewareArray;
+      middlewareArray = middlewareArray.concat(routerMiddlewares);
 
       // add class middleware
-      middlewareArray = target.middlewares
-        ? middlewareArray.concat(target.middlewares)
-        : middlewareArray;
+      middlewareArray = middlewareArray.concat(classRoute.middlewares);
 
       // add controller middleware
-      middlewareArray = middlewares
-        ? middlewareArray.concat(middlewares)
-        : middlewareArray;
+      middlewareArray = middlewareArray.concat(methodRoute.middlewares);
 
       // add controller
-      middlewareArray.push(target[property]);
+      middlewareArray.push(methodRoute.controller);
 
-      const url = routerPath + target.path + path;
+      const url = routerPath + classRoute.path + methodRoute.path;
       logger.info(`Register router: ${url}`);
-      router[method](url, ...middlewareArray);
-    };
-  };
+      router[methodRoute.method](url, ...middlewareArray);
+    }
+  }
 
-  // dynamic import all controller in the folder
-  glob.sync(path.join(controllerFolder, `./**/*ts`)).forEach((item) => {
-    import(item);
-  });
   return router;
 };

@@ -7,6 +7,7 @@ export const config = {
   dbPassword: process.env.DB_PASSWORD,
   dbHost: process.env.DB_HOST,
   jwtSecret: process.env.JWT_SECRET,
-  logLevel: process.env.NODE_ENV === "production" ? "http" : "debug",
-  port:process.env.PORT || 3000
+  logLevel: process.env.NODE_ENV === "prod" ? "http" : "debug",
+  logSilent: process.env.NODE_ENV === "test",
+  port: process.env.PORT || 3000,
 };

@@ -1,9 +1,9 @@
 import { Context, Next } from "koa";
-import { controller, get } from "../decorater/router";
+import { Controller, Get } from "../decorater";
 
-@controller("/users")
+@Controller("/users")
 export class UserController {
-  @get("")
+  @Get("")
   static async getUsers(ctx: Context) {
     ctx.request.body;
     ctx.status = 400;
@@ -11,12 +11,15 @@ export class UserController {
   }
 }
 
-@controller()
 export class UserController2 {
-  @get("/a")
+  @Get("/a")
   static async getUsers(ctx: Context) {
     ctx.request.body;
     ctx.status = 400;
     ctx.body = "xxx";
   }
 }
+
+export const sum = (a: number, b: number) => {
+  return a + b;
+};
