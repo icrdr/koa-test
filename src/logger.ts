@@ -3,30 +3,32 @@ import chalk from "chalk";
 import { transports, format, createLogger } from "winston";
 import "winston-daily-rotate-file";
 import { config } from "./config";
+import { KoaMiddlewareInterface, Middleware } from "routing-controllers";
 
 const loggerContent = (isColored: boolean) => {
-  return format.printf((info) => {
-    const prefix = `${chalk.gray(info.timestamp)} `;
-    const level = info.level.toUpperCase();
+  return format.printf(({ timestamp, level, message, stack }) => {
+    const prefix = `${chalk.gray(timestamp)} `;
+    level = level.toUpperCase();
     let suffix: string;
     switch (level) {
       case "ERROR":
-        suffix = `${chalk.bgRed.black(level)} \n${chalk.red(info.stack)}`;
+        suffix = `${chalk.bgRed.black(level)} ${chalk.red(message)}
+        \n${chalk.red(stack)}`;
         break;
       case "WARN":
-        suffix = `${chalk.bgYellow.black(level)} ${chalk.yellow(info.message)}`;
+        suffix = `${chalk.bgYellow.black(level)} ${chalk.yellow(message)}`;
         break;
       case "INFO":
-        suffix = `${chalk.bgGreen.black(level)} ${chalk.green(info.message)}`;
+        suffix = `${chalk.bgGreen.black(level)} ${chalk.green(message)}`;
         break;
       case "HTTP":
-        suffix = `${chalk.bgCyan.black(level)} ${chalk.cyan(info.message)}`;
+        suffix = `${chalk.bgCyan.black(level)} ${chalk.cyan(message)}`;
         break;
       case "DEBUG":
-        suffix = `${chalk.bgGrey.black(level)} ${chalk.grey(info.message)}`;
+        suffix = `${chalk.bgGrey.black(level)} ${chalk.grey(message)}`;
         break;
       default:
-        suffix = `${chalk.bgRed.black(level)} ${chalk.red(info.message)}`;
+        suffix = `${chalk.bgRed.black(level)} ${chalk.red(message)}`;
         break;
     }
     if (isColored) {
@@ -40,7 +42,7 @@ const loggerContent = (isColored: boolean) => {
   });
 };
 
-const logger = createLogger({
+export const logger = createLogger({
   level: config.logLevel,
   format: format.combine(
     format.timestamp({
@@ -63,31 +65,46 @@ const logger = createLogger({
   ],
 });
 
-const requestLogger = async (ctx: Context, next: Next) => {
-  const start = new Date().getTime();
-  logger.debug("Request Body: \n" + JSON.stringify(ctx.request.body, null, 2));
+@Middleware({ type: "before" })
+export class requestLogger implements KoaMiddlewareInterface {
+  async use(ctx: Context, next: Next) {
+    const start = new Date().getTime();
 
-  try {
+    if (Object.keys(ctx.request.body).length)
+      logger.debug(
+        "Request Body: \n" + JSON.stringify(ctx.request.body, null, 2)
+      );
+
     await next();
-  } catch (error) {
-    //catch ctx.throw
-    ctx.status = error.statusCode || error.status || 500;
-    ctx.body = {
-      msg: error.message,
-    };
-    // console error on terminal
-    if (ctx.status >= 500) {
-      logger.error(error);
-    }
-    // console error on terminal (official)
-    // ctx.app.emit("error", error, ctx);
-  } finally {
+
     const duration = new Date().getTime() - start;
     logger.http(
       `${ctx.status} ${ctx.method} ${ctx.originalUrl} +${duration}ms`
     );
-    logger.debug("Respond Body: \n" + JSON.stringify(ctx.body, null, 2));
+    if (Object.keys(ctx.body).length)
+      logger.debug("Respond Body: \n" + JSON.stringify(ctx.body, null, 2));
   }
-};
+}
 
-export { logger, requestLogger };
+@Middleware({ type: "before" })
+export class errorHandler implements KoaMiddlewareInterface {
+  async use(ctx: Context, next: Next) {
+    try {
+      await next();
+    } catch (error) {
+      //catch error and build respound
+      ctx.status = error.httpCode || error.status || 500;
+      ctx.body = {
+        message: error.message,
+      };
+      if (error.errors) ctx.body["errors"] = error.errors;
+
+      // console error on terminal
+      if (error.httpCode >= 500) {
+        logger.error(error);
+      }
+      // console error on terminal (official)
+      // ctx.app.emit("error", error, ctx);
+    }
+  }
+}

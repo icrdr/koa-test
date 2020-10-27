@@ -1,34 +1,52 @@
-import { createConnection, getConnection } from "typeorm";
+import Container, { Inject, Service } from "typedi";
+import * as typeorm from "typeorm";
 import { SnakeNamingStrategy } from "typeorm-naming-strategies";
 import { config } from "./config";
+import { UserService } from "./user/user.service";
+import { UserCreate } from "./user/user.dto";
 
-export const connection = {
-  create: async () => {
-    await createConnection({
-      type: "mysql",
-      host: config.dbHost,
-      port: 3306,
-      username: config.dbUsername,
-      password: config.dbPassword,
-      database: config.dbDatabase,
-      entities: [__dirname + "/entity/*.ts"], //related dir only
-      synchronize: true, // sync table
-      namingStrategy: new SnakeNamingStrategy(),
-      logging: false,
-    });
-  },
+// interface userCreate {
+//   username:string
+//   password:string
+// }
 
-  close: async () => {
-    await getConnection().close();
-  },
+export class ConnectionDriver {
+  @Inject()
+  userService!: UserService;
 
-  clear: async () => {
-    const connection = getConnection();
-    const entities = connection.entityMetadatas;
+  connection: typeorm.Connection;
+  constructor(connection: typeorm.Connection) {
+    this.connection = connection;
+    this.userService = Container.get(UserService);
+  }
 
-    entities.forEach(async (entity) => {
-      const repository = connection.getRepository(entity.name);
-      await repository.query(`DELETE FROM ${entity.tableName}`);
-    });
-  },
+  async close() {
+    await this.connection.close();
+  }
+
+  async clear() {
+    await this.connection.dropDatabase();
+  }
+
+  async createFakeUsers(users: Array<UserCreate>) {
+    for (const user of users) {
+      await this.userService.createUser(user.username, user.password);
+    }
+  }
+}
+
+export const createConnection = async (entities: Array<string>) => {
+  const connection = await typeorm.createConnection({
+    type: "mysql",
+    host: config.dbHost,
+    port: 3306,
+    username: config.dbUsername,
+    password: config.dbPassword,
+    database: config.dbDatabase,
+    entities: entities,
+    synchronize: true,
+    namingStrategy: new SnakeNamingStrategy(),
+    logging: false,
+  });
+  return new ConnectionDriver(connection);
 };

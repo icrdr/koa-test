@@ -1,17 +1,17 @@
-import {
-  validate,
-  validateOrReject,
-  Contains,
-  IsInt,
-  Length,
-  IsEmail,
-  IsFQDN,
-  IsDate,
-  Min,
-  Max,
-} from "class-validator";
+import { IsNumber, IsString } from "class-validator";
 
-export class Post {
-  @Length(10, 20)
-  title!: string;
+export class UserCreate {
+  @IsString()
+  username!: string;
+
+  @IsString()
+  password!: string;
+}
+
+export class GetUsersQuery {
+  @IsNumber()
+  perpage!:number
+
+  @IsNumber()
+  page!:number
 }

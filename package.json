@@ -9,6 +9,7 @@
     "@types/koa-router": "^7.4.1",
     "@types/node": "^14.11.8",
     "chalk": "^4.1.0",
+    "class-transformer": "^0.3.1",
     "class-validator": "^0.12.2",
     "dotenv": "^8.2.0",
     "glob": "^7.1.6",
@@ -16,10 +17,12 @@
     "koa": "^2.13.0",
     "koa-bodyparser": "^4.3.0",
     "koa-jwt": "^4.0.0",
+    "koa-multer": "^1.0.2",
     "koa-router": "^9.4.0",
     "mysql2": "^2.2.5",
     "reflect-metadata": "^0.1.13",
-    "sequelize": "^6.3.5",
+    "routing-controllers": "^0.9.0-alpha.6",
+    "typedi": "^0.8.0",
     "typeorm": "^0.2.28",
     "typeorm-naming-strategies": "^2.0.0",
     "winston": "^3.3.3",
@@ -38,9 +41,9 @@
   "scripts": {
     "test": "export NODE_ENV=test && jest",
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "export NODE_ENV=prod && node dist/server.js",
     "dev": "export NODE_ENV=dev && nodemon --watch src --ext ts,tsx --exec ts-node src/server.ts",
-    "db": "node src/update_db.js"
+    "db": "export NODE_ENV=dev && ts-node script/update_db.ts"
   },
   "keywords": [
     "koa"

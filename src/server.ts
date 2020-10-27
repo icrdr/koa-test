@@ -1,14 +1,12 @@
-import { Connection, createConnection } from "typeorm";
-import { SnakeNamingStrategy } from "typeorm-naming-strategies";
 import { config } from "./config";
 import { logger } from "./logger";
 
-import app from "./app";
-import { connection } from "./db";
+import { createApp } from "./app";
+import { createConnection } from "./db";
 
-connection.create().then(() => {
+createConnection([__dirname + "/entity/*.ts"]).then(() => {
   logger.info("Successfully connect to database.");
-  // const app = await createApp();
+  const app = createApp([__dirname + "/**/*.controller.ts"]);
   app.listen(config.port);
   logger.info(`App started at port http://localhost:${config.port}`);
 });
