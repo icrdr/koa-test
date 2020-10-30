@@ -2,13 +2,15 @@ import request from "supertest";
 import { createApp } from "../app";
 import Koa from "koa";
 import { ConnectionDriver, createConnection } from "../db";
+import { UserController } from "./user.controller";
+import { User } from "../entity";
 
 describe("Test user controller", () => {
   let app: Koa;
   let connection: ConnectionDriver;
 
   beforeAll(async () => {
-    connection = await createConnection([__dirname + "/*.entity.ts"]);
+    connection = await createConnection([User]);
     await connection.createFakeUsers([
       { username: "user1", password: "12345" },
       { username: "user2", password: "12345" },
@@ -16,7 +18,7 @@ describe("Test user controller", () => {
   });
 
   beforeEach(async () => {
-    app = createApp([__dirname + "/*.controller.ts"]);
+    app = createApp([UserController]);
   });
 
   afterAll(async () => {
@@ -109,6 +111,6 @@ describe("Test user controller", () => {
   test("Remove user not exited", async () => {
     const response = await request(app.callback()).delete("/api/users/10");
     expect(response.status).toBe(404);
-    console.log(response.body)
+    console.log(response.body);
   });
 });

@@ -1,8 +1,14 @@
 import { Exclude } from "class-transformer";
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  JoinTable,
+  ManyToMany,
+} from "typeorm";
 export enum UserGender {
-  Male = "male",
-  Female = "female",
+  male = "male",
+  female = "female",
 }
 
 @Entity()
@@ -35,4 +41,52 @@ export class User {
 
   @Column({ nullable: true })
   idNumber!: string;
+
+  @ManyToMany(() => Role)
+  @JoinTable()
+  roles!: Role[];
+}
+
+export enum ThirdAuthType {
+  wechat = "wechat",
+}
+
+@Entity()
+export class ThirdAuth {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({
+    type: "enum",
+    enum: ThirdAuthType,
+  })
+  type!: string;
+
+  @Column()
+  uid!: string;
+}
+
+@Entity()
+export class Role {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ unique: true })
+  name!: string;
+
+  @Column({ nullable: true })
+  description!: string;
+
+  @ManyToMany(() => Permission)
+  @JoinTable()
+  permissions!: Permission[];
+}
+
+@Entity()
+export class Permission {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ unique: true })
+  code!: string;
 }

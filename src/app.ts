@@ -1,15 +1,48 @@
 import "reflect-metadata";
 import { errorHandler, requestLogger } from "./logger";
-import { createKoaServer } from "routing-controllers";
+import { Action, createKoaServer } from "routing-controllers";
 import { useContainer as rcUseContainer } from "routing-controllers";
 import { useContainer as typeOrmUseContainer } from "typeorm";
 import { Container } from "typedi";
+import jwt from "jsonwebtoken";
+import { config } from "./config";
+import { currentUser } from "./interface";
 
 rcUseContainer(Container);
 typeOrmUseContainer(Container);
 
-export const createApp = (controllers: Array<string>) => {
+const authorizationChecker = async (action: Action, roles: string[]) => {
+  const token = action.request.headers["authorization"].split(" ")[1];
+  const decodedToken: any = jwt.verify(token, config.jwtSecret);
+  const ownedPermissions = decodedToken.permissions;
+  const validated: string[] = [];
+  for (const neededPermission of roles) {
+    for (const ownedPermission of ownedPermissions) {
+      if (neededPermission.includes(ownedPermission)) {
+        validated.push(neededPermission);
+        break; //break nested loop
+      }
+    }
+  }
+  if (!validated) return false;
+
+  const currentUser: currentUser = {
+    id: decodedToken.id,
+    permissions: validated,
+  };
+  action.request.currentUser = currentUser;
+
+  return true;
+};
+
+const currentUserChecker = async (action: Action) => {
+  return action.request.currentUser;
+};
+
+export const createApp = (controllers: Function[] | string[]) => {
   const app = createKoaServer({
+    authorizationChecker: authorizationChecker,
+    currentUserChecker: currentUserChecker,
     routePrefix: "/api",
     defaultErrorHandler: false,
     controllers: controllers,

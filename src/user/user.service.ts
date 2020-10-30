@@ -1,75 +1,78 @@
-import { User } from "./user.entity";
-// import { hash } from "../../utils.js";
-// import jwt from "jsonwebtoken";
-import { getConnection, Repository } from "typeorm";
+import { Permission, Role, User } from "./user.entity";
+import { EntityManager, getConnection, getManager, Repository } from "typeorm";
 import { Service } from "typedi";
-import { NotFoundError } from "routing-controllers";
 import { hash } from "../utils";
+import { config } from "../config";
+import jwt from "jsonwebtoken";
 
 @Service()
 export class UserService {
-  userRepository: Repository<User>;
+  manager: EntityManager;
 
   constructor() {
-    this.userRepository = getConnection().getRepository(User);
+    this.manager = getManager();
   }
 
   async getUserById(id: number) {
-    const user = await this.userRepository.findOne(id);
-    return user;
+    return await this.manager.findOne(User, id);
   }
 
   async getUserByUsername(username: string) {
-    const user = await this.userRepository.findOne({ username: username });
+    return await this.manager.findOne(User, { username: username });
+  }
+
+  async createUser(username: string, password: string, roles: Role[] | undefined []) {
+    // if (!roles)
+    //   roles = [await this.manager.findOne(Role, { name: "default" })];
+    const user = new User();
+    user.username = username;
+    user.password = hash(username + password);
+    user.fullName = username;
+    await this.manager.save(user);
     return user;
   }
 
-  async createUser(username: string, password: string) {
-    const newUser = new User();
-    newUser.username = username;
-    newUser.password = hash(username + password);
-    newUser.fullName = username;
-    await this.userRepository.save(newUser);
-    return newUser;
-  }
-
-  async getUsers(perpage: number, page: number) {
-    const users = await this.userRepository.findAndCount({
-      take: perpage,
+  async getUsers(perPage: number, page: number) {
+    return await this.manager.findAndCount(User, {
+      take: perPage,
       skip: page,
     });
-    return users;
+  }
+
+  async authUser(username: string, password: string) {
+    const user = await this.manager.findOne(User, {
+      username: username,
+      password: hash(username + password),
+    });
+
+    if (!user) return undefined;
+
+    const payload = {
+      id: user.id,
+      permissions: ["common.user"],
+    };
+
+    return jwt.sign(payload, config.jwtSecret, {
+      expiresIn: "24h",
+    });
   }
 
   async deleteUserById(id: number) {
-    await this.userRepository.delete(id);
+    await this.manager.delete(User, id);
+  }
+
+  async createRole(name: string, permissions: Permission[] = []) {
+    const role = new Role();
+    role.name = name;
+    role.permissions = permissions;
+    await this.manager.save(role);
+    return role;
+  }
+
+  async createPermission(code: string) {
+    const permission = new Permission();
+    permission.code = code;
+    await this.manager.save(permission);
+    return permission;
   }
 }
-
-// const userRepository = getConnection().getRepository(User);
-
-// export const getUserById = async (id: number) => {
-//   const user = await userRepository.findOne(id);
-//   return user;
-// };
-
-// const getUserFromCtx = async (ctx) => {
-//     const token = ctx.header.authorization.split(' ')[1]
-//     const decodedToken = jwt.verify(token, process.env.JWT_SECRET)
-//     const user = await getUserById(decodedToken.id)
-//     return user
-// }
-
-// const authUser = async (username, password) => {
-//     const user = await User.findOne({
-//         where: {
-//             username: username,
-//         }
-//     })
-
-//     if (user.password === hash(username + password)) {
-//         return user
-//     } else {
-//         return null
-//     }
-// }

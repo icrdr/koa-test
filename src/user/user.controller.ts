@@ -8,44 +8,62 @@ import {
   Delete,
   NotFoundError,
   ForbiddenError,
+  Authorized,
+  CurrentUser,
 } from "routing-controllers";
 import { UserService } from "./user.service";
-import { UserCreate, GetUsersQuery } from "./user.dto";
+import { AuthUserDTO, CreateUserDTO, GetUsersDTO } from "./user.dto";
 import { Inject } from "typedi";
+import { currentUser } from "../interface";
 
 @JsonController("/users")
 export class UserController {
   @Inject()
   userService!: UserService;
 
+  @Authorized(["admin.user.browse", "common.user.browse"])
   @Get("/:id")
-  async getOne(@Param("id") id: number) {
+  async getUser(@CurrentUser() current: currentUser, @Param("id") id: number) {
+    console.log(current);
     const user = await this.userService.getUserById(id);
-    if (!user) throw new NotFoundError(`User was not found.`);
+    if (!user) throw new NotFoundError("User was not found.");
     return user;
   }
 
   @Get()
-  async getAll(@QueryParams() query: GetUsersQuery) {
-    const users = await this.userService.getUsers(query.perpage, query.page);
+  async getUsers(@QueryParams() query: GetUsersDTO) {
+    const users = await this.userService.getUsers(query.perPage, query.page);
     return users;
   }
 
   @Post()
-  async create(@Body() userPost: UserCreate) {
-    const user = await this.userService.getUserByUsername(userPost.username);
-    if (user) {
-      throw new ForbiddenError(`Username existed`);
-    } else {
-      return this.userService.createUser(userPost.username, userPost.password);
-    }
+  async createUser(@Body() body: CreateUserDTO) {
+    const user = await this.userService.getUserByUsername(body.username);
+    if (user) throw new ForbiddenError("Username existed");
+
+    return this.userService.createUser(body.username, body.password);
   }
 
   @Delete("/:id")
-  async deleteOne(@Param("id") id: number) {
+  async deleteUser(@Param("id") id: number) {
     const user = await this.userService.getUserById(id);
-    if (!user) throw new NotFoundError(`User was not found.`);
+    if (!user) throw new NotFoundError("User was not found.");
+
     await this.userService.deleteUserById(id);
     return { message: "Deleted" };
+  }
+}
+
+@JsonController("/auth")
+export class AuthController {
+  @Inject()
+  userService!: UserService;
+
+  @Post()
+  async authUser(@Body() body: AuthUserDTO) {
+    const token = await this.userService.authUser(body.username, body.password);
+    if (!token) throw new NotFoundError("Auth Fail");
+
+    return { token: token };
   }
 }

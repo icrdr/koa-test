@@ -1,6 +1,6 @@
 import { IsNumber, IsString } from "class-validator";
 
-export class UserCreate {
+export class CreateUserDTO {
   @IsString()
   username!: string;
 
@@ -8,9 +8,17 @@ export class UserCreate {
   password!: string;
 }
 
-export class GetUsersQuery {
+export class AuthUserDTO {
+  @IsString()
+  username!: string;
+
+  @IsString()
+  password!: string;
+}
+
+export class GetUsersDTO {
   @IsNumber()
-  perpage!:number
+  perPage!:number
 
   @IsNumber()
   page!:number

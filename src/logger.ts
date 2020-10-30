@@ -12,8 +12,8 @@ const loggerContent = (isColored: boolean) => {
     let suffix: string;
     switch (level) {
       case "ERROR":
-        suffix = `${chalk.bgRed.black(level)} ${chalk.red(message)}
-        \n${chalk.red(stack)}`;
+        suffix = `${chalk.bgRed.black(level)} ${chalk.red(message)} \
+        \n${chalk.red(stack)}`.replace(/\n/g, "\n                        ");
         break;
       case "WARN":
         suffix = `${chalk.bgYellow.black(level)} ${chalk.yellow(message)}`;
@@ -69,20 +69,21 @@ export const logger = createLogger({
 export class requestLogger implements KoaMiddlewareInterface {
   async use(ctx: Context, next: Next) {
     const start = new Date().getTime();
-
-    if (Object.keys(ctx.request.body).length)
-      logger.debug(
-        "Request Body: \n" + JSON.stringify(ctx.request.body, null, 2)
-      );
-
     await next();
+
+    logger.debug(
+      `Request Body: \n${JSON.stringify(ctx.request.body, null, 2)}\
+      `.replace(/\n/g, "\n                        ")
+    );
+    logger.debug(
+      `Response Body: \n${JSON.stringify(ctx.response.body, null, 2)}\
+      `.replace(/\n/g, "\n                        ")
+    );
 
     const duration = new Date().getTime() - start;
     logger.http(
       `${ctx.status} ${ctx.method} ${ctx.originalUrl} +${duration}ms`
     );
-    if (Object.keys(ctx.body).length)
-      logger.debug("Respond Body: \n" + JSON.stringify(ctx.body, null, 2));
   }
 }
 
@@ -98,13 +99,10 @@ export class errorHandler implements KoaMiddlewareInterface {
         message: error.message,
       };
       if (error.errors) ctx.body["errors"] = error.errors;
-
-      // console error on terminal
-      if (error.httpCode >= 500) {
-        logger.error(error);
+      if (ctx.status >= 500) {
+        logger.error(error); // console error on terminal (winston)
+        // ctx.app.emit("error", error, ctx); // console error on terminal (official)
       }
-      // console error on terminal (official)
-      // ctx.app.emit("error", error, ctx);
     }
   }
 }
